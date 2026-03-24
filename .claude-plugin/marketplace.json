@@ -1,0 +1,16 @@
+{
+    "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+    "name": "ricolin-copilot-plugins",
+    "owner": {
+        "name": "Rico Lin",
+        "url": "https://github.com/ricolin"
+    },
+    "plugins": [
+        {
+            "name": "atmosphere",
+            "description": "Development workflow and contribution guidelines for the Atmosphere private cloud platform.",
+            "source": "./plugins/atmosphere",
+            "homepage": "https://github.com/ricolin/copilot-plugins"
+        }
+    ]
+}

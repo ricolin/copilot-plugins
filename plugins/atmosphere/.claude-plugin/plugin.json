@@ -1,0 +1,18 @@
+{
+    "name": "atmosphere",
+    "description": "Development workflow and contribution guidelines for the Atmosphere private cloud platform.",
+    "version": "0.1.0",
+    "author": {
+        "name": "Rico Lin",
+        "url": "https://github.com/ricolin"
+    },
+    "homepage": "https://github.com/ricolin/copilot-plugins",
+    "keywords": [
+        "atmosphere",
+        "openstack",
+        "kubernetes",
+        "cloud",
+        "helm",
+        "ansible"
+    ]
+}
