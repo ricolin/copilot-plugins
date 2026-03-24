@@ -41,13 +41,16 @@ To deploy a complete Atmosphere all-in-one environment on a remote machine.
 
    The deployment takes a long time. Always run build commands inside a `tmux` session so they persist independently. Launch the build, then immediately return the tmux session name — do not wait for completion.
 
+   **CRITICAL: Always set `remain-on-exit on` so the tmux session stays alive after the command finishes (success or failure). This preserves the full output for later review. Never use the `tmux new -d -s name 'command'` shorthand — it destroys the session on exit.**
+
    ```bash
    git clone https://github.com/vexxhost/atmosphere
    cd atmosphere
-   tmux new -d -s atmosphere 'cd $(pwd) && tox -e molecule-aio-ovn'
+   tmux new -d -s atmosphere \; set-option remain-on-exit on
+   tmux send-keys -t atmosphere "cd $(pwd) && tox -e molecule-aio-ovn" Enter
    ```
 
-   This starts the build in the background tmux session `atmosphere` and returns immediately. Report the session name to track later.
+   This starts the build in the background tmux session `atmosphere` and returns immediately. The session will persist even after the command completes, so output can always be reviewed. Report the session name to track later.
 
    To deploy from a specific branch or pull request, switch before launching tmux:
 
@@ -56,7 +59,8 @@ To deploy a complete Atmosphere all-in-one environment on a remote machine.
    cd atmosphere
    git checkout <BRANCH>                        # deploy from a branch
    git fetch origin pull/<PR_NUMBER>/head && git checkout FETCH_HEAD  # deploy from a PR
-   tmux new -d -s atmosphere 'cd $(pwd) && tox -e molecule-aio-ovn'
+   tmux new -d -s atmosphere \; set-option remain-on-exit on
+   tmux send-keys -t atmosphere "cd $(pwd) && tox -e molecule-aio-ovn" Enter
    ```
 
    Available molecule scenarios:
@@ -132,13 +136,15 @@ To re-run tests, either:
 
    ```bash
    kubectl -n openstack delete pod -l job-name=tempest-run-tests
-   tmux new -d -s tempest-rerun 'cd /root/atmosphere && tox -e molecule-aio-ovn'
+   tmux new -d -s tempest-rerun \; set-option remain-on-exit on
+   tmux send-keys -t tempest-rerun 'cd /root/atmosphere && tox -e molecule-aio-ovn' Enter
    ```
 
 2. **Run molecule verify directly in tmux** using the existing `.tox` virtualenv:
 
    ```bash
-   tmux new -d -s tempest-verify 'cd /root/atmosphere && source .tox/molecule-aio-ovn/bin/activate && ATMOSPHERE_NETWORK_BACKEND=ovn molecule verify -s aio'
+   tmux new -d -s tempest-verify \; set-option remain-on-exit on
+   tmux send-keys -t tempest-verify 'cd /root/atmosphere && source .tox/molecule-aio-ovn/bin/activate && ATMOSPHERE_NETWORK_BACKEND=ovn molecule verify -s aio' Enter
    ```
 
    Set `ATMOSPHERE_NETWORK_BACKEND` to match the scenario:
@@ -222,6 +228,30 @@ kubectl -n openstack get ingress/dashboard -ojsonpath='{.spec.rules[0].host}'
 ```
 
 Login credentials can be found in `/root/openrc` (`OS_USERNAME`, `OS_PASSWORD`, `OS_USER_DOMAIN_NAME`).
+
+## tmux Session Lifecycle Rules
+
+**These rules apply to all tmux sessions created for deployment or validation tasks.**
+
+1. **Always use `remain-on-exit on`** when creating tmux sessions. This keeps the session alive after the command finishes so output can be reviewed. Create sessions with:
+   ```bash
+   tmux new -d -s <SESSION_NAME> \; set-option remain-on-exit on
+   tmux send-keys -t <SESSION_NAME> '<COMMAND>' Enter
+   ```
+   Never use `tmux new -d -s <name> '<command>'` — that form destroys the session when the command exits.
+
+2. **Never kill, close, or stop a tmux session** while a deployment or validation task is still running inside it. Always check if the task has finished before cleaning up:
+   ```bash
+   tmux ls                                    # check if session exists
+   tmux capture-pane -t <SESSION_NAME> -p | tail -50  # check output for completion
+   ```
+
+3. **Only clean up after confirming completion.** Once you have confirmed the deployment or validation has finished (succeeded or failed) and the user has been informed, sessions can be cleaned up with:
+   ```bash
+   tmux kill-session -t <SESSION_NAME>
+   ```
+
+4. **If `tmux ls` shows no sessions**, the deployment was either not started in tmux or the session was lost. Do not assume the deployment is done — investigate further by checking running processes and pod status.
 
 ## Important
 
