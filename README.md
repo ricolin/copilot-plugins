@@ -1,0 +1,33 @@
+# Atmosphere Copilot Plugins
+
+Copilot CLI plugins for the [Atmosphere](https://github.com/vexxhost/atmosphere) private cloud platform — ships skills covering development workflow, contribution guidelines, and Helm chart management.
+
+## Prerequisites
+
+- [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli) installed
+- An active [Copilot subscription](https://github.com/features/copilot/plans)
+
+## Installation
+
+Install directly from the GitHub repository:
+
+```
+/plugin marketplace add ricolin/copilot-plugins
+/plugin install atmosphere@ricolin-copilot-plugins
+```
+
+After installing, verify the plugin is loaded:
+
+```
+/skills list
+```
+
+You should see the `atmosphere` skill listed.
+
+## Usage
+
+### `atmosphere` plugin
+
+The atmosphere plugin ships development workflow skills for contributing to the Atmosphere project:
+
+- **atmosphere** — Development guidelines covering conventional commits, DCO sign-off, Helm chart vendor + patch workflow, release notes with reno, Ansible role defaults formatting, and PR conventions.

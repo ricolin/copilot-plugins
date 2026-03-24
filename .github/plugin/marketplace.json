@@ -1,0 +1,22 @@
+{
+  "name": "atmosphere",
+  "metadata": {
+    "description": "Copilot plugins for the Atmosphere private cloud platform",
+    "version": "1.0.0"
+  },
+  "owner": {
+    "name": "Rico Lin",
+    "url": "https://github.com/ricolin"
+  },
+  "plugins": [
+    {
+      "name": "atmosphere",
+      "description": "Development workflow and contribution guidelines for the Atmosphere private cloud platform.",
+      "version": "0.1.0",
+      "source": "plugins/atmosphere",
+      "skills": [
+        "./skills/atmosphere"
+      ]
+    }
+  ]
+}
