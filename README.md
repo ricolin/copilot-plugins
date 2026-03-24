@@ -9,20 +9,27 @@ Copilot CLI plugins for the [Atmosphere](https://github.com/vexxhost/atmosphere)
 
 ## Installation
 
-Install directly from the GitHub repository:
+### GitHub Copilot CLI
 
 ```
 /plugin marketplace add ricolin/copilot-plugins
 /plugin install atmosphere@ricolin-copilot-plugins
 ```
 
-After installing, verify the plugin is loaded:
+Verify the plugin is loaded:
 
 ```
 /skills list
 ```
 
-You should see the `atmosphere` skill listed.
+### Claude Code
+
+```
+claude plugin add ricolin/copilot-plugins
+claude plugin install atmosphere
+```
+
+You should see the `atmosphere` skill listed after installation.
 
 ## Usage
 
