@@ -7,6 +7,8 @@ description: "Operating and building Atmosphere environments (vexxhost/atmospher
 
 This skill is for operating [vexxhost/atmosphere](https://github.com/vexxhost/atmosphere) environments — an open-source platform that deploys OpenStack, Kubernetes, and Ceph on bare metal using Helm and Ansible.
 
+> **Scope:** The deployment, status checking, and validation sections below apply **only to all-in-one (AIO) environments**. Multi-node and production deployments use different procedures not covered here. The [Operating](#operating-an-atmosphere-environment) and [Running Commands](#running-commands) sections apply to any Atmosphere environment.
+
 ## Building an All-in-One Environment
 
 Reference: [Atmosphere Quick Start — All-in-One](https://vexxhost.github.io/atmosphere/quick-start.html#all-in-one)
@@ -65,17 +67,53 @@ To deploy a complete Atmosphere all-in-one environment on a remote machine.
 
 4. **Check deployment progress:**
 
-   Attach to the tmux session to see if the command has finished:
+   See the [Checking All-in-One Deployment Status](#checking-all-in-one-deployment-status) section below for the full procedure. Quick check:
 
    ```bash
-   tmux attach -t atmosphere
+   tmux capture-pane -t atmosphere -p | tail -50
    ```
 
-   If the `tox` command completed successfully, the session will show the final output. Detach again with `Ctrl+b d`.
+   This prints the last visible output without attaching interactively. Look for a tox/molecule success or failure summary.
 
-## Validating a Deployment
+## Checking All-in-One Deployment Status
 
-Deployment and test results are included in the command output in tmux.
+When asked whether an all-in-one Atmosphere deployment is ready, finished, or about its status, **always check the tmux session on the remote host first**. The AIO deployment runs inside tmux as a long-running `tox -e molecule-aio-*` command. The tmux session is the source of truth for whether the build has completed or is still running.
+
+### Procedure
+
+1. **SSH to the remote host:**
+
+   ```bash
+   ssh <USER>@<HOST>    # mode: async; e.g. ubuntu for Ubuntu OS
+   sudo -i
+   ```
+
+2. **List tmux sessions** to find the deployment session:
+
+   ```bash
+   tmux ls
+   ```
+
+   The deployment session is typically named `atmosphere` (or similar, e.g. `tempest-rerun`, `tempest-verify`).
+
+3. **Capture recent output** from the tmux session to check progress without attaching interactively:
+
+   ```bash
+   tmux capture-pane -t atmosphere -p | tail -50
+   ```
+
+   This prints the last visible lines from the tmux pane. Look for:
+   - **Still running:** ongoing Ansible/Molecule task output, no final summary yet.
+   - **Succeeded:** a Molecule/tox summary line such as `molecule-aio-ovn: commands succeeded` or `congratulations` or a play recap showing `failed=0`.
+   - **Failed:** error messages, a non-zero exit code summary, or `failed=1` (or higher) in the play recap.
+
+4. **Report the result** — tell the user whether the deployment is still running, succeeded, or failed, along with the relevant output lines.
+
+> **Key rule:** Do NOT check Kubernetes pods (`kubectl get pods`) to determine if an AIO deployment is done. The tox/molecule command orchestrates the full deployment including post-deploy validation. Only the tmux session output tells you the true status.
+
+## Validating an All-in-One Deployment
+
+Deployment and test results are included in the command output in the tmux session on the AIO host.
 
 ### Tempest (OpenStack integration tests)
 
@@ -86,7 +124,7 @@ kubectl -n openstack get jobs | grep tempest
 kubectl -n openstack logs job/tempest-run-tests
 ```
 
-### Re-running Tempest tests
+### Re-running Tempest tests (AIO only)
 
 To re-run tests, either:
 
