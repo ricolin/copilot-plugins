@@ -253,6 +253,44 @@ Login credentials can be found in `/root/openrc` (`OS_USERNAME`, `OS_PASSWORD`, 
 
 4. **If `tmux ls` shows no sessions**, the deployment was either not started in tmux or the session was lost. Do not assume the deployment is done — investigate further by checking running processes and pod status.
 
+## Deployment Debugging
+
+When an AIO deployment fails, check the tmux session output for the error. Below are known failure scenarios and their fixes. After applying a fix, **always re-run the deployment** using the same tmux procedure described in [Building an All-in-One Environment](#building-an-all-in-one-environment).
+
+### "There are existing loopback devices"
+
+**Symptom:** The deployment fails on the Ansible task `Fail if there is any existing loopback devices` with a message about existing loopback devices.
+
+**Root cause:** The `create_fake_devices.yml` playbook has a safety check that aborts if loopback devices already exist (e.g. from a previous failed deployment attempt).
+
+**Fix:** Remove the failing task directly from the playbook on the remote host, then re-run the deployment.
+
+```bash
+# On the remote host as root, remove the "Fail if there is any existing loopback devices" task
+# from the installed Ansible collection playbook:
+PLAYBOOK=~/.ansible/collections/ansible_collections/vexxhost/ceph/playbooks/create_fake_devices.yml
+# Use sed or Python to remove the task block that contains "Fail if there is any existing loopback devices"
+python3 -c "
+import yaml, sys
+with open('$PLAYBOOK') as f:
+    data = yaml.safe_load(f)
+for play in data:
+    if 'tasks' in play:
+        play['tasks'] = [t for t in play['tasks'] if t.get('name') != 'Fail if there is any existing loopback devices']
+with open('$PLAYBOOK', 'w') as f:
+    yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+print('Removed the loopback device check task')
+"
+```
+
+After removing the task, re-run the deployment in a new tmux session:
+
+```bash
+tmux kill-session -t atmosphere 2>/dev/null
+tmux new -d -s atmosphere \; set-option remain-on-exit on
+tmux send-keys -t atmosphere "cd /root/atmosphere && tox -e molecule-aio-ovn" Enter
+```
+
 ## Important
 
 - Use an **async interactive SSH session** — start with `ssh` (mode: async), then send `sudo -i` and commands via `write_bash`.
