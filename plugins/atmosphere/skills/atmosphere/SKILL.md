@@ -196,6 +196,15 @@ To apply changes to only specific components of an existing AIO deployment (e.g.
 
 > **Key rule:** The `.tox/molecule-aio-*/bin/activate` virtualenv must already exist from a previous full `tox -e molecule-aio-*` run. If it does not exist, run a full deployment first.
 
+### Changing Molecule AIO Configuration Variables
+
+To customize the AIO deployment (e.g. override Ansible variables, feature flags, or component settings), edit the molecule variable files **before** running `molecule converge`.
+
+**Where to make changes (in priority order):**
+
+1. **`molecule/default/group_vars/all/molecule.yml`** — the primary group variables file. Edit here first for variables that apply across all scenarios.
+2. **`molecule/aio/`** — if the variable is specific to the AIO scenario or not picked up from `molecule/default/group_vars/`, edit the relevant files here (e.g. `converge.yml`, `prepare.yml`, `molecule.yml`).
+
 ## Operating an Atmosphere Environment
 
 - **User:** OS-dependent (e.g. `ubuntu` for Ubuntu, `centos` for CentOS, `root` for some environments)
