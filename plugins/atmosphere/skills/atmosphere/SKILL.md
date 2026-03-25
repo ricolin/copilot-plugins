@@ -1,6 +1,6 @@
 ---
 name: atmosphere
-description: "Operating and building Atmosphere environments (vexxhost/atmosphere). Use this skill for operating Atmosphere cloud environments — OpenStack CLI commands (server list, network list, volume list, image list, etc.), Kubernetes/kubectl commands, Ceph storage commands via cephadm, remote shell access to cloud controllers, and building all-in-one Atmosphere deployments. Covers nova, neutron, cinder, glance, keystone, heat, octavia, kubectl, and cephadm operations."
+description: "Operating and building Atmosphere environments (vexxhost/atmosphere). Use this skill for operating Atmosphere cloud environments — OpenStack CLI commands (server list, network list, volume list, image list, etc.), Kubernetes/kubectl commands, Ceph storage commands via cephadm, remote shell access to cloud controllers, building all-in-one Atmosphere deployments, and updating AIO environments with specific Ansible tags via molecule converge. Covers nova, neutron, cinder, glance, keystone, heat, octavia, kubectl, and cephadm operations."
 ---
 
 # Atmosphere Environment Operations
@@ -150,6 +150,51 @@ To re-run tests, either:
    Set `ATMOSPHERE_NETWORK_BACKEND` to match the scenario:
    - `ovn` — for OVN deployments
    - `openvswitch` — for Open vSwitch deployments
+
+## Updating an All-in-One Environment with Specific Tags
+
+To apply changes to only specific components of an existing AIO deployment (e.g. just Nova, Neutron, or Keystone), use `molecule converge` with the `ATMOSPHERE_ANSIBLE_TAGS` environment variable. This runs only the Ansible tasks tagged with the specified component, which is much faster than a full re-deployment.
+
+### Procedure
+
+1. **SSH to the AIO host and become root:**
+
+   ```bash
+   ssh <USER>@<HOST>    # mode: async; e.g. ubuntu for Ubuntu OS
+   sudo -i
+   ```
+
+2. **Run molecule converge with tags in tmux:**
+
+   ```bash
+   tmux new -d -s atmosphere-update \; set-option remain-on-exit on
+   tmux send-keys -t atmosphere-update 'cd /root/atmosphere && source .tox/molecule-aio-ovn/bin/activate && ATMOSPHERE_ANSIBLE_TAGS=<TAG> molecule converge -s aio' Enter
+   ```
+
+   Replace `<TAG>` with the component to update. Examples:
+
+   - `ATMOSPHERE_ANSIBLE_TAGS=nova` — update only Nova (compute)
+   - `ATMOSPHERE_ANSIBLE_TAGS=neutron` — update only Neutron (networking)
+   - `ATMOSPHERE_ANSIBLE_TAGS=keystone` — update only Keystone (identity)
+   - `ATMOSPHERE_ANSIBLE_TAGS=octavia` — update only Octavia (load balancing)
+   - `ATMOSPHERE_ANSIBLE_TAGS=cinder` — update only Cinder (block storage)
+   - `ATMOSPHERE_ANSIBLE_TAGS=glance` — update only Glance (image service)
+   - `ATMOSPHERE_ANSIBLE_TAGS=heat` — update only Heat (orchestration)
+   - `ATMOSPHERE_ANSIBLE_TAGS=nova,neutron` — update multiple components (comma-separated)
+
+   For Open vSwitch deployments, activate the corresponding virtualenv instead:
+
+   ```bash
+   source .tox/molecule-aio-openvswitch/bin/activate
+   ```
+
+3. **Check progress:**
+
+   ```bash
+   tmux capture-pane -t atmosphere-update -p | tail -50
+   ```
+
+> **Key rule:** The `.tox/molecule-aio-*/bin/activate` virtualenv must already exist from a previous full `tox -e molecule-aio-*` run. If it does not exist, run a full deployment first.
 
 ## Operating an Atmosphere Environment
 
