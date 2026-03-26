@@ -205,6 +205,16 @@ To customize the AIO deployment (e.g. override Ansible variables, feature flags,
 1. **`molecule/default/group_vars/all/molecule.yml`** — the primary group variables file. Edit here first for variables that apply across all scenarios.
 2. **`molecule/aio/`** — if the variable is specific to the AIO scenario or not picked up from `molecule/default/group_vars/`, edit the relevant files here (e.g. `converge.yml`, `prepare.yml`, `molecule.yml`).
 
+> **CRITICAL:** When setting `ATMOSPHERE_ANSIBLE_VARS_PATH` for AIO deployments, it **must** point to the **scenario directory** (`molecule/aio/`), **not** `molecule/default/`. AIO vars are scenario-specific and live under `molecule/aio/`. Pointing to the wrong directory will cause variables to be missing or incorrect.
+>
+> ```bash
+> # Correct — points to the AIO scenario directory:
+> ATMOSPHERE_ANSIBLE_VARS_PATH=/root/atmosphere/molecule/aio/
+>
+> # Wrong — molecule/default/ does not contain AIO-specific vars:
+> ATMOSPHERE_ANSIBLE_VARS_PATH=/root/atmosphere/molecule/default/
+> ```
+
 ## Operating an Atmosphere Environment
 
 - **User:** OS-dependent (e.g. `ubuntu` for Ubuntu, `centos` for CentOS, `root` for some environments)
