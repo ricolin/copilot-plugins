@@ -22,6 +22,20 @@ Verify the plugin is loaded:
 /skills list
 ```
 
+### Gemini CLI
+
+You can install the atmosphere skill directly using the Gemini CLI:
+
+```bash
+gemini skills install https://github.com/ricolin/copilot-plugins.git --path plugins/atmosphere/skills/atmosphere
+```
+
+Or install the repository as an extension (which bundles the skill):
+
+```bash
+gemini extensions install https://github.com/ricolin/copilot-plugins.git
+```
+
 ### Claude Code
 
 ```

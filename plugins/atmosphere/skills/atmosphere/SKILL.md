@@ -67,6 +67,8 @@ To deploy a complete Atmosphere all-in-one environment on a remote machine.
    - `molecule-aio-ovn` — all-in-one with OVN networking
    - `molecule-aio-openvswitch` — all-in-one with Open vSwitch networking
 
+   > **OVS vs OVN terminology:** When the user asks for an **"OVS"** or **"Open vSwitch"** build, always use `molecule-aio-openvswitch`. OVS and OVN are **different networking backends** — do not substitute one for the other. "OVS" **never** means OVN. Only use `molecule-aio-ovn` when the user explicitly asks for OVN.
+
    Set `ATMOSPHERE_DEBUG=true` before running `tox` to enable debug output.
 
 4. **Check deployment progress:**
