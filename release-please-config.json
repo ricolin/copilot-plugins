@@ -16,6 +16,21 @@
           "jsonpath": "$.version"
         }
       ]
+    },
+    "plugins/rlin-git": {
+      "component": "rlin-git",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": ".claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        }
+      ]
     }
   }
 }

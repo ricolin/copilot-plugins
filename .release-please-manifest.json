@@ -1,3 +1,4 @@
 {
-  "plugins/atmosphere": "0.1.0"
+  "plugins/atmosphere": "0.1.0",
+  "plugins/rlin-git": "0.1.0"
 }

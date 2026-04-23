@@ -52,3 +52,15 @@ You should see the `atmosphere` skill listed after installation.
 The atmosphere plugin ships development workflow skills for contributing to the Atmosphere project:
 
 - **atmosphere** — Development guidelines covering conventional commits, DCO sign-off, Helm chart vendor + patch workflow, release notes with reno, Ansible role defaults formatting, and PR conventions.
+
+### `rlin-git` plugin
+
+Rico's personal git commit conventions:
+
+- **rlin-git** — Ensures every AI agent that assists with a commit (Copilot, Claude, Gemini, etc.) is attributed using an `Assisted-By:` trailer rather than `Co-authored-by:`. `Co-authored-by:` stays reserved for human collaborators.
+
+Install with:
+
+```
+/plugin install rlin-git@ricolin-copilot-plugins
+```

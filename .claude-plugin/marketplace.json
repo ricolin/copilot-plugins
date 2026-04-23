@@ -11,6 +11,12 @@
             "description": "Development workflow and contribution guidelines for the Atmosphere private cloud platform.",
             "source": "./plugins/atmosphere",
             "homepage": "https://github.com/ricolin/copilot-plugins"
+        },
+        {
+            "name": "rlin-git",
+            "description": "Rico's git commit conventions — attribute AI agents with 'Assisted-By:' instead of 'Co-authored-by:'.",
+            "source": "./plugins/rlin-git",
+            "homepage": "https://github.com/ricolin/copilot-plugins"
         }
     ]
 }
