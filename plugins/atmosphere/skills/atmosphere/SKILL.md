@@ -1,6 +1,6 @@
 ---
 name: atmosphere
-description: "Operating and building Atmosphere environments (vexxhost/atmosphere). Use this skill for operating Atmosphere cloud environments — OpenStack CLI commands (server list, network list, volume list, image list, etc.), Kubernetes/kubectl commands, Ceph storage commands via cephadm, remote shell access to cloud controllers, building all-in-one Atmosphere deployments, and updating AIO environments with specific Ansible tags via molecule converge. Covers nova, neutron, cinder, glance, keystone, heat, octavia, kubectl, and cephadm operations."
+description: "Operating and building Atmosphere environments (vexxhost/atmosphere). Use this skill for operating Atmosphere cloud environments — OpenStack CLI commands (server list, network list, volume list, image list, etc.), Kubernetes/kubectl commands, Ceph storage commands via cephadm, remote shell access to cloud controllers, building all-in-one Atmosphere deployments, and updating AIO environments with specific Ansible tags. Prefers the parallel `atmosphere deploy` / `atmosphere deploy --tags` CLI when available, falling back to `tox -e molecule-aio-*` and `molecule converge` with `ATMOSPHERE_ANSIBLE_TAGS`. Covers nova, neutron, cinder, glance, keystone, heat, octavia, ironic, magnum, kubectl, and cephadm operations."
 ---
 
 # Atmosphere Environment Operations
@@ -43,11 +43,20 @@ To deploy a complete Atmosphere all-in-one environment on a remote machine.
 
    **CRITICAL: Always set `remain-on-exit on` so the tmux session stays alive after the command finishes (success or failure). This preserves the full output for later review. Never use the `tmux new -d -s name 'command'` shorthand — it destroys the session on exit.**
 
+   **Preferred command — `atmosphere deploy` (when available):** If the repository checkout provides the `atmosphere` CLI (check for `./bin/atmosphere` in the repo root, or `command -v atmosphere` on `PATH`), **always prefer it** over `tox -e molecule-aio-*`. The `atmosphere` CLI runs roles in parallel and is significantly faster than the molecule path.
+
    ```bash
    git clone https://github.com/vexxhost/atmosphere
    cd atmosphere
    tmux new -d -s atmosphere \; set-option remain-on-exit on
-   tmux send-keys -t atmosphere "cd $(pwd) && tox -e molecule-aio-ovn" Enter
+   # Prefer ./bin/atmosphere deploy when present; fall back to tox otherwise.
+   tmux send-keys -t atmosphere "cd $(pwd) && if [ -x ./bin/atmosphere ]; then ./bin/atmosphere deploy -i ./inventory.yaml; else tox -e molecule-aio-ovn; fi" Enter
+   ```
+
+   When you already know the CLI is present (e.g. on a host where prior runs used it), invoke it directly:
+
+   ```bash
+   tmux send-keys -t atmosphere "cd /root/atmosphere && ./bin/atmosphere deploy -i ./inventory.yaml" Enter
    ```
 
    This starts the build in the background tmux session `atmosphere` and returns immediately. The session will persist even after the command completes, so output can always be reviewed. Report the session name to track later.
@@ -60,10 +69,10 @@ To deploy a complete Atmosphere all-in-one environment on a remote machine.
    git checkout <BRANCH>                        # deploy from a branch
    git fetch origin pull/<PR_NUMBER>/head && git checkout FETCH_HEAD  # deploy from a PR
    tmux new -d -s atmosphere \; set-option remain-on-exit on
-   tmux send-keys -t atmosphere "cd $(pwd) && tox -e molecule-aio-ovn" Enter
+   tmux send-keys -t atmosphere "cd $(pwd) && if [ -x ./bin/atmosphere ]; then ./bin/atmosphere deploy -i ./inventory.yaml; else tox -e molecule-aio-ovn; fi" Enter
    ```
 
-   Available molecule scenarios:
+   **Fallback — `tox -e molecule-aio-*`:** Use only when `./bin/atmosphere` is not present in the checkout. Available molecule scenarios:
    - `molecule-aio-ovn` — all-in-one with OVN networking
    - `molecule-aio-openvswitch` — all-in-one with Open vSwitch networking
 
@@ -83,7 +92,7 @@ To deploy a complete Atmosphere all-in-one environment on a remote machine.
 
 ## Checking All-in-One Deployment Status
 
-When asked whether an all-in-one Atmosphere deployment is ready, finished, or about its status, **always check the tmux session on the remote host first**. The AIO deployment runs inside tmux as a long-running `tox -e molecule-aio-*` command. The tmux session is the source of truth for whether the build has completed or is still running.
+When asked whether an all-in-one Atmosphere deployment is ready, finished, or about its status, **always check the tmux session on the remote host first**. The AIO deployment runs inside tmux as a long-running `./bin/atmosphere deploy` (preferred) or `tox -e molecule-aio-*` command. The tmux session is the source of truth for whether the build has completed or is still running.
 
 ### Procedure
 
@@ -109,13 +118,13 @@ When asked whether an all-in-one Atmosphere deployment is ready, finished, or ab
    ```
 
    This prints the last visible lines from the tmux pane. Look for:
-   - **Still running:** ongoing Ansible/Molecule task output, no final summary yet.
-   - **Succeeded:** a Molecule/tox summary line such as `molecule-aio-ovn: commands succeeded` or `congratulations` or a play recap showing `failed=0`.
+   - **Still running:** ongoing Ansible/Atmosphere/Molecule task output, no final summary yet.
+   - **Succeeded:** an `atmosphere deploy` success summary, a Molecule/tox summary line such as `molecule-aio-ovn: commands succeeded` or `congratulations`, or a play recap showing `failed=0`.
    - **Failed:** error messages, a non-zero exit code summary, or `failed=1` (or higher) in the play recap.
 
 4. **Report the result** — tell the user whether the deployment is still running, succeeded, or failed, along with the relevant output lines.
 
-> **Key rule:** Do NOT check Kubernetes pods (`kubectl get pods`) to determine if an AIO deployment is done. The tox/molecule command orchestrates the full deployment including post-deploy validation. Only the tmux session output tells you the true status.
+> **Key rule:** Do NOT check Kubernetes pods (`kubectl get pods`) to determine if an AIO deployment is done. The `atmosphere deploy` / tox command orchestrates the full deployment including post-deploy validation. Only the tmux session output tells you the true status.
 
 ## Validating an All-in-One Deployment
 
@@ -134,12 +143,13 @@ kubectl -n openstack logs job/tempest-run-tests
 
 To re-run tests, either:
 
-1. **Delete the pod and re-run tox in tmux:**
+1. **Delete the pod and re-run the deployer in tmux:**
 
    ```bash
    kubectl -n openstack delete pod -l job-name=tempest-run-tests
    tmux new -d -s tempest-rerun \; set-option remain-on-exit on
-   tmux send-keys -t tempest-rerun 'cd /root/atmosphere && tox -e molecule-aio-ovn' Enter
+   # Prefer ./bin/atmosphere deploy when available; fall back to tox.
+   tmux send-keys -t tempest-rerun 'cd /root/atmosphere && if [ -x ./bin/atmosphere ]; then ./bin/atmosphere deploy -i ./inventory.yaml; else tox -e molecule-aio-ovn; fi' Enter
    ```
 
 2. **Run molecule verify directly in tmux** using the existing `.tox` virtualenv:
@@ -155,9 +165,50 @@ To re-run tests, either:
 
 ## Updating an All-in-One Environment with Specific Tags
 
-To apply changes to only specific components of an existing AIO deployment (e.g. just Nova, Neutron, or Keystone), use `molecule converge` with the `ATMOSPHERE_ANSIBLE_TAGS` environment variable. This runs only the Ansible tasks tagged with the specified component, which is much faster than a full re-deployment.
+To apply changes to only specific components of an existing AIO deployment (e.g. just Nova, Neutron, or Keystone), pass `--tags` to the deployer. This runs only the Ansible tasks tagged with the specified components, which is much faster than a full re-deployment. **Always prefer tag-scoped runs over full redeploys** when you only need to update a subset of services.
 
-### Procedure
+### Preferred — `atmosphere deploy --tags` (when available)
+
+If `./bin/atmosphere` is present in the checkout, use it with `--tags`. It runs roles in parallel and is significantly faster than `molecule converge`.
+
+1. **SSH to the AIO host and become root:**
+
+   ```bash
+   ssh <USER>@<HOST>    # mode: async; e.g. ubuntu for Ubuntu OS
+   sudo -i
+   ```
+
+2. **Run `atmosphere deploy --tags` in tmux:**
+
+   ```bash
+   tmux new -d -s atmosphere-update \; set-option remain-on-exit on
+   tmux send-keys -t atmosphere-update 'cd /root/atmosphere && ./bin/atmosphere deploy -i ./inventory.yaml --tags <TAG[,TAG...]>' Enter
+   ```
+
+   Replace `<TAG>` with the component(s) to update — comma-separate multiple tags. Examples:
+
+   - `--tags nova` — update only Nova (compute)
+   - `--tags neutron` — update only Neutron (networking)
+   - `--tags keystone` — update only Keystone (identity)
+   - `--tags octavia` — update only Octavia (load balancing)
+   - `--tags cinder` — update only Cinder (block storage)
+   - `--tags glance` — update only Glance (image service)
+   - `--tags heat` — update only Heat (orchestration)
+   - `--tags ironic` — update only Ironic (bare metal)
+   - `--tags magnum` — update only Magnum (container orchestration)
+   - `--tags ironic,nova,neutron,magnum` — update multiple components together
+
+   Pick the **smallest set of tags** that covers what actually changed — this is the main lever for keeping redeploys fast.
+
+3. **Check progress:**
+
+   ```bash
+   tmux capture-pane -t atmosphere-update -p | tail -50
+   ```
+
+### Fallback — `molecule converge` with `ATMOSPHERE_ANSIBLE_TAGS`
+
+Use this only when `./bin/atmosphere` is not available in the checkout.
 
 1. **SSH to the AIO host and become root:**
 
@@ -170,19 +221,10 @@ To apply changes to only specific components of an existing AIO deployment (e.g.
 
    ```bash
    tmux new -d -s atmosphere-update \; set-option remain-on-exit on
-   tmux send-keys -t atmosphere-update 'cd /root/atmosphere && source .tox/molecule-aio-ovn/bin/activate && ATMOSPHERE_ANSIBLE_TAGS=<TAG> molecule converge -s aio' Enter
+   tmux send-keys -t atmosphere-update 'cd /root/atmosphere && source .tox/molecule-aio-ovn/bin/activate && ATMOSPHERE_ANSIBLE_TAGS=<TAG[,TAG...]> molecule converge -s aio' Enter
    ```
 
-   Replace `<TAG>` with the component to update. Examples:
-
-   - `ATMOSPHERE_ANSIBLE_TAGS=nova` — update only Nova (compute)
-   - `ATMOSPHERE_ANSIBLE_TAGS=neutron` — update only Neutron (networking)
-   - `ATMOSPHERE_ANSIBLE_TAGS=keystone` — update only Keystone (identity)
-   - `ATMOSPHERE_ANSIBLE_TAGS=octavia` — update only Octavia (load balancing)
-   - `ATMOSPHERE_ANSIBLE_TAGS=cinder` — update only Cinder (block storage)
-   - `ATMOSPHERE_ANSIBLE_TAGS=glance` — update only Glance (image service)
-   - `ATMOSPHERE_ANSIBLE_TAGS=heat` — update only Heat (orchestration)
-   - `ATMOSPHERE_ANSIBLE_TAGS=nova,neutron` — update multiple components (comma-separated)
+   Same tag values as the `atmosphere deploy --tags` list above (comma-separated for multiples, e.g. `ATMOSPHERE_ANSIBLE_TAGS=nova,neutron`).
 
    For Open vSwitch deployments, activate the corresponding virtualenv instead:
 
@@ -196,7 +238,7 @@ To apply changes to only specific components of an existing AIO deployment (e.g.
    tmux capture-pane -t atmosphere-update -p | tail -50
    ```
 
-> **Key rule:** The `.tox/molecule-aio-*/bin/activate` virtualenv must already exist from a previous full `tox -e molecule-aio-*` run. If it does not exist, run a full deployment first.
+> **Key rule:** The `.tox/molecule-aio-*/bin/activate` virtualenv must already exist from a previous full `tox -e molecule-aio-*` run. If it does not exist, run a full deployment first (or use `./bin/atmosphere deploy` if available).
 
 ### Changing Molecule AIO Configuration Variables
 
@@ -354,7 +396,7 @@ After removing the task, re-run the deployment in a new tmux session:
 ```bash
 tmux kill-session -t atmosphere 2>/dev/null
 tmux new -d -s atmosphere \; set-option remain-on-exit on
-tmux send-keys -t atmosphere "cd /root/atmosphere && tox -e molecule-aio-ovn" Enter
+tmux send-keys -t atmosphere "cd /root/atmosphere && if [ -x ./bin/atmosphere ]; then ./bin/atmosphere deploy -i ./inventory.yaml; else tox -e molecule-aio-ovn; fi" Enter
 ```
 
 ## Important
